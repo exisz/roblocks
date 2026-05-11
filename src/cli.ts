@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { Command } from 'commander';
 import chalk from 'chalk';
 import {
@@ -19,12 +21,22 @@ import {
   getValueOnly,
 } from './store';
 
+const packageVersion = (() => {
+  try {
+    // package.json is always included by npm for published packages.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    return require('../package.json').version as string;
+  } catch {
+    return '0.0.0';
+  }
+})();
+
 const program = new Command();
 
 program
   .name('roblocks')
   .description('Distributed credential vault with git-backed storage')
-  .version('0.0.1');
+  .version(packageVersion);
 
 // --- store commands ---
 
