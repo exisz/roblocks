@@ -1,6 +1,6 @@
 {
   "name": "roblocks",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Distributed credential vault with git-backed storage for distributed agents",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
