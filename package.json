@@ -18,8 +18,8 @@
     "test:watch": "vitest",
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit",
-    "publish:patch": "npm version patch && npm publish --access public",
-    "publish:minor": "npm version minor && npm publish --access public"
+    "publish:patch": "npm version patch && pnpm build && npm publish --access public",
+    "publish:minor": "npm version minor && pnpm build && npm publish --access public"
   },
   "keywords": [
     "credentials",
