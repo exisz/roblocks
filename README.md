@@ -1,44 +1,23 @@
 # 🗄️ roblocks
 
-> Distributed credential vault with git-backed storage for distributed agents.
+[![npm version](https://img.shields.io/npm/v/roblocks.svg)](https://www.npmjs.com/package/roblocks)
+[![npm downloads](https://img.shields.io/npm/dm/roblocks.svg)](https://www.npmjs.com/package/roblocks)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![Node.js >=18](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](https://nodejs.org/)
 
-**Why roblocks?** Robots need blocks. Your agents need secrets. Store them safely in git — encrypted at rest by GitHub's infrastructure, versioned by default, auditable forever.
+> Distributed credential vault with git-backed storage for agents and small teams.
 
-## Philosophy
+**roblocks** gives robots a simple credential vault: values live in a private GitHub repo, writes are committed and pushed, reads fetch fresh origin state, and every change is auditable through git history.
+
+## Why roblocks?
 
 - **Git is the source of truth** — no local cache, no state drift
-- **Read from origin, write to origin** — every `set` is a commit+push, every `get` is a fresh fetch
-- **Transparent authentication** — uses whatever git credentials the shell has (SSH key, PAT, `gh auth`)
-- **Strict but flexible format** — supports key-value and lists, rejects arbitrary nesting
+- **Read from origin, write to origin** — every `set` is a commit + push; every `get` fetches fresh state
+- **Transparent authentication** — uses whatever git credentials the shell already has: SSH key, PAT, `gh auth`, or credential helper
+- **Strict but flexible format** — supports simple key/value secrets, objects with metadata, and lists
+- **Agent-friendly** — one CLI command is enough for distributed workers to retrieve or update shared credentials
 
-## Data Model
-
-```yaml
-# Level 1: key → scalar or sequence
-openai_api_key: "sk-xxx"                    # Level 2: simple string
-
-stripe_secret:                               # Level 2: compound object
-  value: "sk_live_xxx"
-  expiry: "2026-12-01"
-
-github_bots:                                 # Level 1: list
-  - value: "ghp_xxx"                         # Level 2: string
-    username: "bot-001"
-    purpose: "star-farming"
-  - value: "ghp_yyy"
-    username: "bot-002"
-    tags: [issue-tracker]
-```
-
-### Rules
-
-| Level | Allowed | Required |
-|-------|---------|----------|
-| 1 (key) | scalar or sequence | — |
-| 2 (value) | string or object | if object, must contain `value:` |
-| 3+ | ❌ rejected | — |
-
-All other fields (`expiry`, `tags`, `purpose`, `username`, etc.) are optional metadata.
+> Security note: use a private repository for real credentials. roblocks provides workflow, validation, versioning, and auditability; it does not encrypt individual values before committing them.
 
 ## Install
 
@@ -46,40 +25,73 @@ All other fields (`expiry`, `tags`, `purpose`, `username`, etc.) are optional me
 npm install -g roblocks
 ```
 
+Or run without installing:
+
+```bash
+npm exec --package roblocks -- roblocks --help
+```
+
 ## Quick Start
 
 ```bash
-# Register a store (central registry)
+# Register a store in ~/.roblocks/config.yaml
 roblocks store add empire \
   --repo exisz/credentials \
   --file stores/empire.yaml \
   --branch main
 
-# List registered stores
-roblocks store list
-
-# Set a simple key
+# Set a simple credential
 roblocks set empire openai_api_key "sk-xxx"
 
-# Set with metadata
+# Set a credential with metadata
 roblocks set empire stripe_secret --json '{"value":"sk_live_xxx","expiry":"2026-12-01"}'
 
-# Get a key
+# Read a credential
 roblocks get empire openai_api_key
 
-# Get a list item by index
-roblocks get empire github_bots[0]
+# Read JSON for agents/scripts
+roblocks get empire stripe_secret --format json
 
-# Get all items in a list
-roblocks get empire github_bots --format json
+# List keys without printing values
+roblocks list empire
 
-# Delete a key
-roblocks delete empire openai_api_key
+# Validate store schema
+roblocks validate empire
 ```
+
+## Data Model
+
+```yaml
+# Level 1: key → scalar, object, or sequence
+openai_api_key: "sk-xxx"
+
+stripe_secret:
+  value: "sk_live_xxx"
+  expiry: "2026-12-01"
+  account: "production"
+
+github_bots:
+  - value: "ghp_xxx"
+    username: "bot-001"
+    purpose: "star-farming"
+  - value: "ghp_yyy"
+    username: "bot-002"
+    tags: [issue-tracker]
+```
+
+### Schema Rules
+
+| Level | Allowed | Required |
+| --- | --- | --- |
+| 1 | scalar, object, or sequence | — |
+| 2 | string or object | if object, must contain `value:` |
+| 3+ | rejected | — |
+
+Metadata fields such as `expiry`, `tags`, `purpose`, `username`, `account`, and `url` are optional.
 
 ## Configuration
 
-`~/.roblocks/config.yaml` — central store registry:
+`~/.roblocks/config.yaml` stores registered vaults:
 
 ```yaml
 stores:
@@ -93,41 +105,42 @@ stores:
     branch: main
 ```
 
-Multiple stores can point to the same repo (different files) or different repos entirely.
+Multiple stores can point to the same repo, different files in one repo, or different repos.
 
 ## CLI Reference
 
 ### `roblocks store add <name> --repo <repo> --file <path> [--branch <branch>]`
-Register a new store in `~/.roblocks/config.yaml`.
+Register a store in `~/.roblocks/config.yaml`.
 
 ### `roblocks store list`
-List all registered stores.
+List registered stores.
 
 ### `roblocks store remove <name>`
-Remove a store from registry (does not delete remote file).
+Remove a store from the local registry. This does not delete the remote file.
 
-### `roblocks get <store> <key> [--format json|yaml|env]`
-Fetch and display a value. Lists are returned as arrays.
+### `roblocks get <store> <key> [--format json|yaml|string]`
+Fetch and print a value. Lists can be read as a whole or by index, e.g. `github_bots[0]`.
 
 ### `roblocks set <store> <key> <value> [--json]`
-Set a value. Auto-detects scalar vs list. `--json` forces object parse.
+Set a credential value. `--json` stores structured metadata.
 
 ### `roblocks delete <store> <key>`
 Remove a key from the store.
 
 ### `roblocks list <store> [--format json|yaml]`
-List all keys in a store (names only, no values).
+List key names without printing secret values.
 
 ### `roblocks validate <store>`
-Validate store YAML against roblocks schema.
+Validate a store YAML file against roblocks' schema.
 
 ## Authentication
 
-roblocks delegates to whatever git credentials are available in the environment:
-- SSH key (`~/.ssh/id_*`)
+roblocks delegates to git/GitHub credentials already available in the environment:
+
+- SSH keys (`~/.ssh/id_*`)
 - GitHub CLI (`gh auth status`)
-- GitHub Personal Access Token (`GITHUB_TOKEN` env var)
-- HTTPS credentials (git credential helper)
+- `GITHUB_TOKEN`
+- HTTPS credential helpers
 
 ## License
 
