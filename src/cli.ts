@@ -16,6 +16,7 @@ import {
   setValueFromString,
   deleteValue,
   listKeys,
+  searchKeys,
   validateStore,
   formatValue,
   getValueOnly,
@@ -142,6 +143,31 @@ program
       console.log(JSON.stringify(keys, null, 2));
     } else {
       console.log(chalk.bold(`Keys in ${storeName}:`));
+      for (const key of keys) {
+        console.log(`  ${key}`);
+      }
+    }
+  });
+
+
+// --- search ---
+
+program
+  .command('search <store> <keyword>')
+  .description('Search key names in a store without printing secret values')
+  .option('-f, --format <format>', 'Output format: json, yaml', 'yaml')
+  .option('--metadata', 'Also search non-secret metadata fields on compound values')
+  .action(async (storeName, keyword, opts) => {
+    const config = getStoreConfig(storeName);
+    const keys = searchKeys(config, keyword, { includeMetadata: Boolean(opts.metadata) });
+    if (keys.length === 0) {
+      console.log(chalk.yellow(`No keys matching "${keyword}" in ${storeName}.`));
+      return;
+    }
+    if (opts.format === 'json') {
+      console.log(JSON.stringify(keys, null, 2));
+    } else {
+      console.log(chalk.bold(`Keys in ${storeName} matching "${keyword}":`));
       for (const key of keys) {
         console.log(`  ${key}`);
       }

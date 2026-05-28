@@ -55,6 +55,9 @@ roblocks get empire stripe_secret --format json
 # List keys without printing values
 roblocks list empire
 
+# Search key names without printing values
+roblocks search empire dokploy
+
 # Validate store schema
 roblocks validate empire
 ```
@@ -129,6 +132,17 @@ Remove a key from the store.
 
 ### `roblocks list <store> [--format json|yaml]`
 List key names without printing secret values.
+
+### `roblocks search <store> <keyword> [--format json|yaml] [--metadata]`
+Search key names without printing secret values. Matching is case-insensitive. Use `--metadata` to also search non-secret metadata fields on compound values; the secret `value` field is never searched or printed.
+
+Examples:
+
+```bash
+roblocks search empire dokploy
+roblocks search empire tailscale --format json
+roblocks search empire deploy --metadata
+```
 
 ### `roblocks validate <store>`
 Validate a store YAML file against roblocks' schema.

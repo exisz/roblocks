@@ -16,6 +16,7 @@ export {
   setValueFromString,
   deleteValue,
   listKeys,
+  searchKeys,
   validateStore,
   formatValue,
   getValueOnly,

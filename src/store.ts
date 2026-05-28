@@ -113,6 +113,28 @@ export function listKeys(config: StoreConfig): string[] {
   return Object.keys(store);
 }
 
+function valueHasMetadataMatch(value: Level1Value, query: string): boolean {
+  const values = Array.isArray(value) ? value : [value];
+  return values.some((entry) => {
+    if (typeof entry === 'string') return false;
+    return Object.entries(entry).some(([field, fieldValue]) => {
+      if (field === 'value') return false;
+      return field.toLowerCase().includes(query) || String(fieldValue).toLowerCase().includes(query);
+    });
+  });
+}
+
+export function searchKeys(config: StoreConfig, keyword: string, opts?: { includeMetadata?: boolean }): string[] {
+  const query = keyword.trim().toLowerCase();
+  if (!query) return [];
+  const store = loadStore(config);
+  return Object.keys(store).filter((key) => {
+    if (key.toLowerCase().includes(query)) return true;
+    if (opts?.includeMetadata) return valueHasMetadataMatch(store[key], query);
+    return false;
+  });
+}
+
 export function validateStore(config: StoreConfig): { valid: boolean; errors?: string } {
   try {
     loadStore(config);
