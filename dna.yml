@@ -1,0 +1,19 @@
+# Compatibility alias for DNA CLI versions that probe dna.yml before dna.yaml.
+# Keep this contract aligned with dna.yaml.
+goal: >-
+  Provide a distributed credential vault whose git-backed stores are the
+  auditable source of truth for agents and small teams.
+boundary:
+  - Does not encrypt secret values before they are committed; credential repositories must remain private.
+  - Does not replace git authentication or access control.
+  - Does not print secret values during list, search, or validation operations.
+tools:
+  - roblocks CLI
+  - private git repositories
+  - ~/.roblocks/config.yaml store registry
+spec: SPEC.md
+deprecated:
+  - pattern: Keeping shared credentials only in local .env or .secrets files
+    replacement: Store shared credentials in a registered roblocks store and retrieve them at runtime.
+    reason: Local-only secrets drift between agents and are not an auditable shared source of truth.
+    since: "2026-08-07"
